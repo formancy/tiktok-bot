@@ -1,36 +1,35 @@
 {
-  "name": "somiibo-downloader",
+  "name": "tiktok-comment-agent",
   "version": "1.0.0",
-  "description": "Download Somiibo, a free social media automation platform that organically grows your online presence and gets you more followers.",
+  "description": "AI-powered TikTok comment bot that generates lead-gen comments using OpenAI and posts them via Apify Actor.",
   "main": "src/index.js",
   "scripts": {
-    "start": "node -e \"require('app-downloader')()\""
+    "start": "node src/index.js"
   },
   "engines": {
     "node": ">=18"
   },
-  "downloads": {
-    "darwin": "https://github.com/somiibo/download-server/releases/download/installer/Somiibo.dmg",
-    "win32": "https://github.com/somiibo/download-server/releases/download/installer/Somiibo-Setup.exe",
-    "linux": "https://github.com/somiibo/download-server/releases/download/installer/Somiibo_amd64.deb"
-  },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/somiibo/download-server.git"
+    "url": "https://github.com/your-username/tiktok-comment-bot"
   },
   "keywords": [
-    "management",
-    "backend",
-    "frontend",
-    "productivity"
+    "tiktok",
+    "lead-generation",
+    "ai-agent",
+    "openai",
+    "apify",
+    "playwright"
   ],
-  "author": "Somiibo",
+  "author": "Formancy AI Agency",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/somiibo/somiibo-microservice-template/issues"
+    "url": "https://github.com/your-username/tiktok-comment-bot/issues"
   },
-  "homepage": "https://somiibo.com",
+  "homepage": "https://github.com/your-username/tiktok-comment-bot",
   "dependencies": {
-    "app-downloader": "^1.0.0"
+    "apify": "^3.4.0",
+    "openai": "^4.0.0",
+    "playwright": "^1.43.0"
   }
 }
