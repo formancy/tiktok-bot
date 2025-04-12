@@ -1,12 +1,20 @@
 import { Actor } from 'apify';
 import { chromium } from 'playwright';
 import OpenAI from 'openai';
-import fs from 'fs-jetpack';
+import fs from 'fs';
+import fsJetpack from 'fs-jetpack';
 import path from 'path';
 
 await Actor.init();
 
-const input = await Actor.getInput();
+// Load input from Apify or local input.json
+let input;
+if (process.env.APIFY_LOCAL_STORAGE_DIR) {
+    input = await Actor.getInput();
+} else {
+    input = JSON.parse(fs.readFileSync('input.json', 'utf-8'));
+}
+
 const { videoUrl, commentPrompt, openaiApiKey } = input;
 
 // Init OpenAI
@@ -18,23 +26,32 @@ const context = await browser.newContext();
 const page = await context.newPage();
 
 // Load saved cookies if available
-const storedCookies = await Actor.getValue('cookies');
+let storedCookies;
+if (process.env.APIFY_LOCAL_STORAGE_DIR) {
+    storedCookies = await Actor.getValue('cookies');
+} else if (fsJetpack.exists('cookies.json')) {
+    storedCookies = JSON.parse(fsJetpack.read('cookies.json'));
+}
 if (storedCookies) {
     await context.addCookies(storedCookies);
     console.log('✅ Cookies loaded');
 }
 
-// Go to login page (only first time)
+// Go to login page if no cookies
 await page.goto('https://www.tiktok.com/login');
 console.log('⏳ Waiting for manual login...');
-await page.waitForTimeout(30000); // Manual login
+await page.waitForTimeout(30000); // wait for manual login
 
-// Save cookies for next runs
+// Save cookies after login
 const cookies = await context.cookies();
-await Actor.setValue('cookies', cookies);
+if (process.env.APIFY_LOCAL_STORAGE_DIR) {
+    await Actor.setValue('cookies', cookies);
+} else {
+    fsJetpack.write('cookies.json', cookies);
+}
 console.log('✅ Cookies saved');
 
-// Go to the video and wait for full load
+// Navigate to the video
 await page.goto(videoUrl, { waitUntil: 'networkidle' });
 await page.waitForTimeout(5000);
 
@@ -49,21 +66,25 @@ await page.keyboard.press('Enter');
 
 console.log('✅ Comment posted:', commentText);
 
-// Close browser and exit actor
+// Cleanup
 await browser.close();
 await Actor.exit();
 
 
-// Helper: AI comment generator
+// 🔧 Helper function: Generate comment with OpenAI
 async function generateComment(openai, prompt) {
     try {
-        const response = await openai.createCompletion({
-            model: 'text-davinci-003',
-            prompt: `Write a convincing comment to generate leads for this: ${prompt}`,
+        const response = await openai.chat.completions.create({
+            model: 'gpt-3.5-turbo',
+            messages: [
+                { role: 'system', content: 'You are a persuasive copywriter focused on lead generation.' },
+                { role: 'user', content: `Write a comment to generate leads: ${prompt}` },
+            ],
             temperature: 0.7,
             max_tokens: 60,
         });
-        return response.data.choices[0].text.trim();
+
+        return response.choices[0].message.content.trim();
     } catch (error) {
         console.error('❌ Error generating comment:', error.message);
         return '🔥 Must see! Changed my game!';
