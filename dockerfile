@@ -1,11 +1,13 @@
-FROM apify/actor-node:20
+FROM mcr.microsoft.com/playwright:v1.43.0-focal
 
-# Copy all files to container
+# Install Apify SDK
+RUN npm install apify --no-optional --only=prod
+
+# Copy files
 COPY . ./
 
-# Install dependencies and Playwright browsers
-RUN npm install --quiet --only=prod --no-optional \
- && npx playwright install --with-deps
+# Install remaining dependencies
+RUN npm install --no-optional
 
 # Default run command
 CMD ["node", "src/index.js"]
