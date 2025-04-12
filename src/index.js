@@ -1,6 +1,6 @@
 import { Actor } from 'apify';
 import { chromium } from 'playwright';
-import { Configuration, OpenAIApi } from 'openai';
+import OpenAI from 'openai';
 import fs from 'fs-jetpack';
 import path from 'path';
 
@@ -10,8 +10,7 @@ const input = await Actor.getInput();
 const { videoUrl, commentPrompt, openaiApiKey } = input;
 
 // Init OpenAI
-const configuration = new Configuration({ apiKey: openaiApiKey });
-const openai = new OpenAIApi(configuration);
+const openai = new OpenAI({ apiKey: openaiApiKey });
 
 // Launch browser
 const browser = await chromium.launch({ headless: false });
