@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "AI-powered TikTok comment bot that generates lead-gen comments using OpenAI and posts them via Apify Actor.",
   "main": "src/index.js",
+  "type": "module",
   "scripts": {
     "start": "node src/index.js"
   },
