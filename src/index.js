@@ -1,60 +1,61 @@
-// Required modules
-const fs = require('fs-jetpack');
-const path = require('path');
-const { chromium } = require('playwright');
-const { Configuration, OpenAIApi } = require('openai');
-const Apify = require('apify');
+import { Actor } from 'apify';
+import { chromium } from 'playwright';
+import { Configuration, OpenAIApi } from 'openai';
+import fs from 'fs-jetpack';
+import path from 'path';
 
-// Main logic
-Apify.main(async () => {
-    const input = await Apify.getInput();
-    const { videoUrl, commentPrompt, openaiApiKey } = input;
+await Actor.init();
 
-    // Init OpenAI
-    const configuration = new Configuration({ apiKey: openaiApiKey });
-    const openai = new OpenAIApi(configuration);
+const input = await Actor.getInput();
+const { videoUrl, commentPrompt, openaiApiKey } = input;
 
-    // Launch browser
-    const browser = await chromium.launch({ headless: false });
-    const context = await browser.newContext();
-    const page = await context.newPage();
+// Init OpenAI
+const configuration = new Configuration({ apiKey: openaiApiKey });
+const openai = new OpenAIApi(configuration);
 
-    // Load saved cookies if available
-    const storedCookies = await Apify.getValue('cookies');
-    if (storedCookies) {
-        await context.addCookies(storedCookies);
-        console.log('✅ Cookies loaded');
-    }
+// Launch browser
+const browser = await chromium.launch({ headless: false });
+const context = await browser.newContext();
+const page = await context.newPage();
 
-    // Go to login page if no cookies
-    await page.goto('https://www.tiktok.com/login');
-    console.log('⏳ Waiting for manual login...');
-    await page.waitForTimeout(30000); // Manual login window
+// Load saved cookies if available
+const storedCookies = await Actor.getValue('cookies');
+if (storedCookies) {
+    await context.addCookies(storedCookies);
+    console.log('✅ Cookies loaded');
+}
 
-    // Save cookies after login
-    const cookies = await context.cookies();
-    await Apify.setValue('cookies', cookies);
-    console.log('✅ Cookies saved');
+// Go to login page (only first time)
+await page.goto('https://www.tiktok.com/login');
+console.log('⏳ Waiting for manual login...');
+await page.waitForTimeout(30000); // Manual login
 
-    // Go to video and wait for full load
-    await page.goto(videoUrl, { waitUntil: 'networkidle' });
-    await page.waitForTimeout(5000);
+// Save cookies for next runs
+const cookies = await context.cookies();
+await Actor.setValue('cookies', cookies);
+console.log('✅ Cookies saved');
 
-    // Select comment input box and click it
-    const commentBoxSelector = 'div.public-DraftEditor-content';
-    await page.click(commentBoxSelector);
+// Go to the video and wait for full load
+await page.goto(videoUrl, { waitUntil: 'networkidle' });
+await page.waitForTimeout(5000);
 
-    // Generate AI comment
-    const commentText = await generateComment(openai, commentPrompt);
-    await page.keyboard.type(commentText);
-    await page.keyboard.press('Enter');
+// Click into the comment input
+const commentBoxSelector = 'div.public-DraftEditor-content';
+await page.click(commentBoxSelector);
 
-    console.log('✅ Comment posted:', commentText);
+// Generate comment with OpenAI
+const commentText = await generateComment(openai, commentPrompt);
+await page.keyboard.type(commentText);
+await page.keyboard.press('Enter');
 
-    await browser.close();
-});
+console.log('✅ Comment posted:', commentText);
 
-// Function to call OpenAI and generate comment
+// Close browser and exit actor
+await browser.close();
+await Actor.exit();
+
+
+// Helper: AI comment generator
 async function generateComment(openai, prompt) {
     try {
         const response = await openai.createCompletion({
@@ -63,7 +64,6 @@ async function generateComment(openai, prompt) {
             temperature: 0.7,
             max_tokens: 60,
         });
-
         return response.data.choices[0].text.trim();
     } catch (error) {
         console.error('❌ Error generating comment:', error.message);
