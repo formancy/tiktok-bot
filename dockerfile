@@ -1,13 +1,17 @@
 FROM mcr.microsoft.com/playwright:v1.43.0-focal
 
-# Install Apify SDK
-RUN npm install apify --no-optional --only=prod
+# Create app directory
+WORKDIR /app
 
-# Copy files
+# Copy only package files first for caching
+COPY package.json ./
+COPY package-lock.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy the rest of your code
 COPY . ./
 
-# Install remaining dependencies
-RUN npm install --no-optional
-
-# Default run command
+# Start the bot
 CMD ["node", "src/index.js"]
